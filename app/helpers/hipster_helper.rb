@@ -1,0 +1,2 @@
+module HipsterHelper
+end

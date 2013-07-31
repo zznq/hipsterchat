@@ -1,0 +1,7 @@
+<h1>Hipster#index</h1>
+
+<ul id="messages">
+  <% @messages.each do |m| %>
+    <li class="message"><%= m.from.name %> - <%= m.message %></li>
+  <% end %>
+</ul>
