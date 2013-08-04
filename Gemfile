@@ -28,6 +28,7 @@ group :development, :test do
   gem 'factory_girl_rails'
   gem 'faker'
   gem 'debugger'
+  gem 'dotenv-rails'
 end
 
 # To use ActiveModel has_secure_password

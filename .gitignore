@@ -13,3 +13,9 @@
 # Ignore all logfiles and tempfiles.
 /log/*.log
 /tmp
+
+# Ignore rvmrv
+.rvmrc
+
+# Ignore dotenv configuration files
+.env
