@@ -10,6 +10,6 @@ feature "Load Home Page" do
     visit root_url
 
     page.should have_content 'FoxPro'
-    page.should have_content 'Jesse Manning'
+    page.should have_content 'Jesse Flanning'
   end
 end

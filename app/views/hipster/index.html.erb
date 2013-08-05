@@ -1,7 +1,17 @@
 <h1>Hipster#index</h1>
 
+<h3>Room List</h3>
+<ul id="rooms">
+  <% @rooms.each do |r| %>
+    <li class="room"><%= r['room_id'] %> - <%= r['name'] %></li>
+  <% end %>
+</ul>
+
+<h3>Message History</h3>
 <ul id="messages">
-  <% @messages.each do |m| %>
-    <li class="message"><%= m.from.name %> - <%= m.message %></li>
+  <% if @messages.each do |m| %>
+    <li class="message"><%= m['from']['name'] %> - <%= m['message'] %></li>
+  <% end.empty? %>
+    <li>No messages found.</li>
   <% end %>
 </ul>
