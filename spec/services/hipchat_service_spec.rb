@@ -2,59 +2,48 @@ require 'spec_helper'
 
 describe HipchatService do
   before :all do
-    @service = HipchatService.new(ENV['HIPCHAT_API_KEY'])
+    @service = HipchatService.new(ENV['HIPCHAT_API_KEY'], DateTime.new('2013-08-01'))
   end
 
   describe "GET" do
     it "should retrieve a list of rooms" do
-      rooms = @service.rooms
+      rooms = @service.get_rooms
       rooms.should_not be_nil
       rooms.should be_instance_of(Array)
     end
 
-    it "should retrieve the room with name 'Dev Lab'" do
-      room = @service.room 'Dev Lab'
-      room.should_not be_nil
-      room['name'].should == 'Dev Lab'
-    end
-
-    it "should return nil for invalid room name" do
-      room = @service.room 'Invalid'
-      room.should be_nil
-    end
-
-    it "should retrieve the room with id 251762" do
-      room = @service.room_by_id(251762)
-      room['room_id'].should == 251762
-    end
-
-    it "should return nil for invalid room id" do
-      room = @service.room_by_id(0)
-      room.should be_nil
-    end
-
-    it "should retrieve messages from room with name Dev Lab" do
-      history = @service.room_history 'Dev Lab'
-      history.should_not be_nil
-      history.should be_instance_of(Array)
-      history.all? { |m| m.key?('message').should be_true }
-    end
-
-    it "should return nil for room history when name invalid" do
-      history = @service.room_history 'Invalid'
-      history.should be_nil
-    end
-
-    it "should return nil for room history when id invalid" do
-      history = @service.room_history_by_id(0)
-      history.should be_nil
+    it "should return empty array for room history when id invalid" do
+      history = @service.room_history(0)
+      history.should be_empty
     end
 
     it "should retrieve messages from room with id 251762" do
-      history = @service.room_history_by_id(251762)
+      history = @service.room_history(251762)
       history.should_not be_nil
       history.should be_instance_of(Array)
       history.all? { |m| m.key?('message').should be_true }
+    end
+  end
+
+  describe "Poll" do
+    it "should consolidate rooms with db" do
+      rooms = @sercvice.poll_rooms
+
+      rooms.each do |r|
+        Room.where(:room_id => r.room_id).should_not be_nil
+      end
+    end
+
+    it "should consolidate history for room 251762 with db" do
+      history = @service.poll_history()
+
+      history.each do |history|
+        m = Message
+          .where(:date => history.date)
+          .where(:message => history.message)
+
+        m.should_not be_nil
+      end
     end
   end
 end

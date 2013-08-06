@@ -4,62 +4,79 @@ class HipchatService
   base_uri 'https://api.hipchat.com'
   format :json
 
-  def initialize(auth_token)
+  def initialize(auth_token, last_record)
     @options = {:query => {:auth_token => auth_token}}
+    @last_record = last_record
   end
 
-  def retrieve_rooms
+  def poll
+    rooms = poll_rooms
+
+    reconcile_rooms(rooms)
+
+    rooms.each do |room|
+      if rooms.last_active > @last_record
+        messages = poll_history(room.room_id)
+        reconcile_messages(room_id, messages)
+      end
+    end
+  end
+
+  def poll_rooms
     response = self.class.get('/v1/rooms/list', @options)
-    @rooms = response.parsed_response['rooms']
+
+    response.parsed_response['rooms'] || []
   end
 
-  def retrieve_room_history(id, date='recent')
-    params = @options.deep_merge({:query => {:room_id => id,
+  def reconcile_rooms(rooms)
+    rooms.inject([]) do |output, room|
+      output << reconcile_room(room)
+    end
+  end
+
+  def reconcile_room(room)
+    Room.where(:room_id => room.room_id) || Room.create(r)
+  end
+
+  def poll_history(room_id)
+    date = Message.maximum('date')
+
+    messages = []
+    if date.nil?
+      messages = poll_history_for_date(room_id, 'recent')
+    else
+      (date - Date.now).to_i.times do |i|
+        messages.concat(poll_history_for_date(room_id, (date + i.days).strftime('%F')))
+      end
+    end
+
+    return messages
+  end
+
+  def poll_history_for_date(room_id, date)
+    params = @options.deep_merge({:query => {:room_id => room_id,
       :date => date}})
-    messages = self.class.get('/v1/rooms/history', params)
+    response = self.class.get('/v1/rooms/history', params)
 
-    return messages.parsed_response['messages']
+    return response.parsed_response['messages'] || []
   end
 
-  def rooms
-    if @rooms.nil?
-      retrieve_rooms
+  def reconcile_messages(room_id, messages)
+    messages.inject([]) do |output, message|
+      output << reconcile_message(room_id, message)
+    end
+  end
+
+  def reconcile_message(room_id, message)
+    m = Message
+          .where(:room_id => room_id)
+          .where(:date => message.date)
+
+    unless m.nil?
+      m = Message.new_message(message)
+      m.save
     end
 
-    return @rooms
-  end
-
-  def room(name)
-    if @rooms.nil?
-      retrieve_rooms
-    end
-
-    # returns either the first occurance of the
-    # room matching name or nil
-    @rooms.find { |item| item['name'] == name }
-  end
-
-  def room_by_id(id)
-    if @rooms.nil?
-      retrieve_rooms
-    end
-
-    # returns either the first occurance of the
-    # room matching id or nil
-    @rooms.find { |item| item['room_id'] == id }
-  end
-
-  def room_history(name)
-    if @rooms.nil?
-      retrieve_rooms
-    end
-
-    room_data = room(name)
-
-    retrieve_room_history(room_data["room_id"]) unless room_data.nil?
-  end
-
-  def room_history_by_id(id)
-    retrieve_room_history(id)
+    return m
   end
 end
